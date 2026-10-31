@@ -12,22 +12,24 @@
 .site-panel-head a{color:#b7ff3c}
 .site-frame{display:block;width:100%;height:68vh;min-height:420px;border:0;background:#fff}
 .camera-preview{width:min(100%,240px);max-height:160px;object-fit:cover;border-radius:10px}
+.camera-actions{margin-top:12px}
+.camera-actions button{padding:10px 16px;border:1px solid #b7ff3c;border-radius:9px;background:#111b18;color:#b7ff3c;font-weight:700;cursor:pointer}
 @media(max-width:600px){.site-frame{height:70vh;min-height:360px}.top{gap:10px;flex-wrap:wrap}}
 </style>
 </head>
 <body>
 <main class="stage">
 <div class="top">
-<div><div class="logo">ZYVORA CAM</div><h2>Camera Session</h2><small>Your selected website opens below. If it requests camera access, allow it in your browser. Start Camera separately to stream this phone to the viewer.</small></div>
+<div><div class="logo">ZYVORA CAM</div><h2>Camera Session</h2><small>Your selected website opens below. Allow camera access when your browser asks. Camera sharing starts automatically after you approve permission.</small></div>
 <div id="status" class="status">Connecting…</div>
 </div>
 <video id="preview" class="video camera-preview" autoplay muted playsinline></video>
-
+<div class="camera-actions"><button id="switchCamera" type="button">Switch Camera ↻</button></div>
 <section id="sitePanel" class="site-panel" hidden>
 <div class="site-panel-head"><span id="siteTitle">YOUR WEBSITE</span><a id="siteExternal" target="_blank" rel="noopener noreferrer">Open in new tab ↗</a></div>
 <iframe id="siteFrame" class="site-frame" title="Your selected website" referrerpolicy="strict-origin-when-cross-origin" allow="camera; fullscreen; autoplay"></iframe>
 </section>
-<p class="note">The website runs inside this page. If it blocks iframe embedding, use “Open in new tab”. Camera streaming starts only after you tap Start Camera and grant permission.</p>
+<p class="note">Use Switch Camera to change between the front and rear cameras. To end sharing, close this page or revoke camera permission in your browser. If a website blocks iframe embedding, use “Open in new tab”.</p>
 </main>
 <script src="camera.js"></script>
 </body>
