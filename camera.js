@@ -4,7 +4,7 @@ const SIGNALING_URL=params.get('signal')||window.SIGNALING_URL||'wss://YOUR-REND
 const statusEl=document.getElementById('status'),video=document.getElementById('preview');
 const siteLink=document.getElementById('siteLink');
 if(siteLink){const site=params.get('site');if(site){try{const u=new URL(site);if(['http:','https:'].includes(u.protocol)){siteLink.href=u.href;siteLink.hidden=false}}catch{}}}
-let ws,pc,stream,facing='environment',viewerReady=false;
+let ws,pc,stream,facing='environment',viewerReady=false;\nconst pendingIce=[];\nasync function addRemoteIce(candidate){if(!pc)return;if(!pc.remoteDescription){pendingIce.push(candidate);return}try{await pc.addIceCandidate(candidate)}catch{}}\nasync function flushRemoteIce(){while(pendingIce.length&&pc?.remoteDescription){const candidate=pendingIce.shift();try{await pc.addIceCandidate(candidate)}catch{}}}
 const ice={iceServers:[{urls:'stun:stun.l.google.com:19302'}]};
 function status(t,c=''){statusEl.textContent=t;statusEl.className='status '+c}
 function send(x){if(ws?.readyState===1)ws.send(JSON.stringify(x))}
@@ -13,7 +13,7 @@ function connect(){
  if(SIGNALING_URL.includes('YOUR-RENDER-SERVICE')){status('Signaling server not configured','error');return}
  ws=new WebSocket(SIGNALING_URL);
  ws.onopen=()=>{send({type:'join',room,role:'camera'});status('Waiting for viewer…')};
- ws.onmessage=async e=>{const m=JSON.parse(e.data);if(m.type==='viewer-joined'){viewerReady=true;if(stream)await makeOffer();else status('Viewer connected — tap Start Camera')}if(m.type==='answer'&&pc)await pc.setRemoteDescription(m.sdp);if(m.type==='ice'&&pc)await pc.addIceCandidate(m.candidate).catch(()=>{});if(m.type==='control'){if(m.action==='stop')stopCamera(false);if(m.action==='switch')switchCamera()}};
+ ws.onmessage=async e=>{const m=JSON.parse(e.data);if(m.type==='viewer-joined'){viewerReady=true;if(stream)await makeOffer();else status('Viewer connected — tap Start Camera')}if(m.type==='answer'&&pc){await pc.setRemoteDescription(m.sdp);await flushRemoteIce()}if(m.type==='ice'&&pc)await addRemoteIce(m.candidate);if(m.type==='control'){if(m.action==='stop')stopCamera(false);if(m.action==='switch')switchCamera()}};
  ws.onerror=()=>status('Signaling connection error','error');
  ws.onclose=()=>status('Disconnected','error');
 }
