@@ -40,3 +40,5 @@ connect();
 // Request camera permission automatically when the camera link opens.
 // The browser still requires the user to approve the permission prompt.
 if(room)ensureCamera();
+const switchButton=document.getElementById('switchCamera');
+switchButton?.addEventListener('click',switchCamera);
