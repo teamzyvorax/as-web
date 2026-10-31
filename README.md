@@ -1,61 +1,42 @@
 # ZYVORA Camera
 
-Consent-based two-phone WebRTC camera viewer.
+Consent-based two-phone camera viewer using WebRTC.
 
-## Flow
-
-1. Open the GitHub Pages site.
-2. Generate a session. It creates two unique links:
-   - `camera.html?room=...` for Phone B
-   - `viewer.html?room=...` for Phone A
-3. Phone B opens its link, taps **Start Camera**, and explicitly grants browser camera permission.
-4. Phone A opens its viewer link and receives the live peer-to-peer video.
-5. Phone A can request **Stop Camera** or **Front / Back** switching.
-6. Closing the camera page stops the local camera stream.
-
-The camera is never designed to be hidden. Browser permission and an on-page camera status remain visible to Phone B.
-
-## Architecture
-
-- Frontend: static HTML/CSS/JavaScript on GitHub Pages.
-- Media: WebRTC peer-to-peer; the signaling server does not relay video.
-- Signaling: Node.js + Express + WebSocket under `server/`.
-- Hosting: deploy the signaling service on a free Render Web Service, then replace `YOUR-RENDER-SERVICE.onrender.com` in `camera.js` and `viewer.js` with the service hostname.
-
-## Termux
+## Termux setup on Phone A
 
 ```bash
 pkg update && pkg upgrade -y
-pkg install git nodejs -y
+pkg install git nodejs openssl -y
 git clone https://github.com/teamzyvorax/as-web.git
 cd as-web
+bash termux/install.sh
+zyvora-camera
 ```
 
-The signaling server can be tested locally:
+The command asks for the original website URL, the ZYVORA HTTPS frontend URL, and the Render WSS signaling URL. It creates a room ID, starts a local Termux session dashboard, and prints the Phone B camera link and Phone A viewer link.
 
-```bash
-cd server
-npm install
-npm start
-```
+## Phone flow
 
-It listens on `0.0.0.0:$PORT` (default 10000) and exposes `/health`.
+1. Phone B opens the original website link if desired.
+2. Phone B opens the separate ZYVORA camera link, taps **Start Camera**, and explicitly grants permission.
+3. Phone A opens the local Termux dashboard, then opens the secure live viewer link.
+4. Phone A can request camera stop or front/back switching.
 
-## GitHub Pages
+## Hosting
 
-Enable **Settings → Pages → GitHub Actions** in the repository. The included workflow deploys the static site.
+- Frontend: GitHub Pages (HTTPS).
+- Signaling: Node.js + Express + WebSocket under `server/`, deploy with `render.yaml`.
+- Media: peer-to-peer WebRTC; the signaling server does not relay or store video.
+- Health check: `/health`.
 
-## Signaling URL
+Use the Render service's `wss://...` URL when running the Termux command.
 
-After Render deployment, edit these two files:
+## Important browser limitation
 
-- `camera.js`
-- `viewer.js`
+A plain LAN URL such as `http://192.168.x.x:8080` is not generally a secure browser context on another phone. Camera access and WebRTC therefore run on the HTTPS ZYVORA pages. The local Termux URL is the local session launcher/dashboard, and it links to the secure viewer.
 
-Set `SIGNALING_URL` to your Render WebSocket URL, for example `wss://your-service.onrender.com`.
+An arbitrary third-party website (for example WhatsApp or Google) cannot be made to host a new `/camera.html` page by adding a path. The original website link is preserved with a `ZYVORA_ROOM` query parameter, but the camera permission page must be hosted by ZYVORA or a domain you control.
 
-GitHub Pages and the signaling service must be HTTPS/WSS so browser camera APIs work correctly.
+## Privacy
 
-## Security note
-
-A room token is a session identifier, not a full authentication system. Share viewer links only with trusted people. No video is intentionally stored by the signaling server.
+Phone B must tap **Start Camera** and grant browser permission. Camera status stays visible. Closing the camera page stops the local camera tracks. Share viewer links only with intended recipients.
