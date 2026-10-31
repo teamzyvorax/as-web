@@ -1,27 +1,90 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>ZYVORA Camera</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#080b16">
+<meta name="description" content="Create a private two-phone camera session with ZYVORA CAM.">
+<title>ZYVORA CAM — Web Session</title>
+<style>
+:root{color-scheme:dark;--bg:#080b16;--panel:#11182a;--line:#27334e;--muted:#9aa8c4;--cyan:#54e5ff;--violet:#9b7cff;--text:#f4f7ff}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 15% 0%,#18244a 0,transparent 42%),radial-gradient(ellipse at 100% 80%,#21133d 0,transparent 38%),var(--bg);font:16px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;color:var(--text);display:grid;place-items:center;padding:24px}
+.wrap{width:min(760px,100%)}.brand{display:flex;align-items:center;gap:12px;font-weight:900;letter-spacing:.16em;color:var(--cyan)}.mark{width:42px;height:42px;border:1px solid #4bdcf5;border-radius:13px;display:grid;place-items:center;box-shadow:0 0 24px #36dfff35;font-size:22px}.brand small{display:block;color:var(--muted);font-size:10px;letter-spacing:.25em;font-weight:600}
+h1{font-size:clamp(34px,7vw,56px);line-height:1.03;margin:30px 0 12px;letter-spacing:-.045em}h1 span{color:var(--cyan)}.intro{color:var(--muted);max-width:620px;margin:0 0 26px}
+.card{background:linear-gradient(145deg,#141d32ed,#0d1425f2);border:1px solid var(--line);border-radius:24px;padding:clamp(20px,5vw,32px);box-shadow:0 25px 90px #0008}.field-label{display:block;font-weight:700;margin:0 0 9px}.input{width:100%;padding:16px;border-radius:13px;border:1px solid #354361;background:#080e1c;color:white;font:inherit;outline:none}.input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px #54e5ff1c}.hint{font-size:13px;color:var(--muted);margin:8px 0 20px}
+button,.openlink{border:0;border-radius:13px;padding:14px 18px;font:inherit;font-weight:800;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px}.primary{background:linear-gradient(100deg,#42dff6,#9c83ff);color:#07101c;width:100%;box-shadow:0 8px 30px #54e5ff24}.secondary{background:#1a2740;color:#eaf4ff;border:1px solid #354361}.primary:disabled{opacity:.6;cursor:wait}
+.hidden{display:none!important}.result{margin-top:22px;border-top:1px solid var(--line);padding-top:22px}.room{font:800 18px ui-monospace,monospace;color:var(--cyan);letter-spacing:.08em;margin:7px 0 18px}.linkbox{margin:15px 0}.linkhead{display:flex;justify-content:space-between;gap:12px;align-items:center;font-weight:750;margin-bottom:8px}.linkrow{display:flex;gap:8px}.linkrow input{min-width:0;flex:1;padding:12px;border-radius:10px;border:1px solid #354361;background:#080e1c;color:#dbeaff;font:12px ui-monospace,monospace}.linkrow button{padding:10px 13px;white-space:nowrap}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}.note{font-size:13px;color:var(--muted);margin:18px 0 0}.note strong{color:#ffd88b}.steps{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}.step{background:#0b1221;border:1px solid var(--line);border-radius:14px;padding:15px}.step b{display:block;margin-bottom:5px}.step span{font-size:13px;color:var(--muted)}footer{text-align:center;color:#71809f;font-size:12px;margin:20px 0}
+@media(max-width:560px){body{padding:16px}.steps{grid-template-columns:1fr}.linkrow{flex-direction:column}.linkrow button{width:100%}.actions>*{flex:1}}
+</style>
 </head>
 <body>
-  <main class="shell">
-    <div class="logo">ZYVORA <span>CAM</span></div>
-    <h1>Private Camera Session</h1>
-    <p>Create a session and share the generated Camera link with the phone that will provide the camera. The Viewer link is for your viewing phone.</p>
-    <button id="create">Generate 2 Links</button>
-    <section id="links" class="panel hidden">
-      <label>📷 Phone B — Camera</label><div class="linkrow"><input id="cameraLink" readonly><button data-copy="cameraLink">Copy</button></div>
-      <label>👁 Phone A — Viewer</label><div class="linkrow"><input id="viewerLink" readonly><button data-copy="viewerLink">Copy</button></div>
-      <p class="note">Phone B must open the camera page, grant camera permission, and keep that page open. Camera use is visibly indicated.</p>
+<main class="wrap">
+  <div class="brand"><div class="mark">◉</div><div>ZYVORA CAM<small>TWO-PHONE WEB CAMERA</small></div></div>
+  <h1>Connect two phones.<br><span>Share a live camera.</span></h1>
+  <p class="intro">Create a private room in your browser. Send the Camera link to the phone that will share its camera, then open the Viewer link on the phone that will watch.</p>
+  <section class="card">
+    <label class="field-label" for="siteUrl">Original website URL <span style="color:#8e9bb5;font-weight:400">(optional)</span></label>
+    <input class="input" id="siteUrl" type="url" inputmode="url" placeholder="https://pocketfm.com/" autocomplete="url">
+    <p class="hint">This is saved as a convenience link on the camera page. ZYVORA does not read that website, its account, or its messages.</p>
+    <button class="primary" id="create">✦ Create Camera Room</button>
+    <div id="error" role="alert" class="note hidden" style="color:#ff9b9b"></div>
+    <section id="result" class="result hidden" aria-live="polite">
+      <div style="color:#9aa8c4;font-size:13px;font-weight:700">YOUR PRIVATE ROOM</div>
+      <div id="roomId" class="room"></div>
+      <div class="linkbox"><div class="linkhead"><span>📷 Phone B — Camera link</span></div><div class="linkrow"><input id="cameraLink" readonly><button class="secondary" data-copy="cameraLink">Copy link</button></div></div>
+      <div class="linkbox"><div class="linkhead"><span>👁 Phone A — Viewer link</span></div><div class="linkrow"><input id="viewerLink" readonly><button class="secondary" data-copy="viewerLink">Copy link</button></div></div>
+      <div class="actions"><a id="openCamera" class="openlink secondary" target="_blank" rel="noopener">Open Camera page ↗</a><a id="openViewer" class="openlink secondary" target="_blank" rel="noopener">Open Viewer page ↗</a></div>
+      <div class="steps"><div class="step"><b>📷 Phone B</b><span>Open Camera link, tap Start Camera, and allow browser camera permission.</span></div><div class="step"><b>👁 Phone A</b><span>Open Viewer link and wait for the live connection.</span></div></div>
+      <p class="note"><strong>Privacy:</strong> Camera sharing starts only after the camera phone user taps Start Camera and grants permission. Keep the page open while sharing. Anyone with the Viewer link may be able to join that room, so share it only with someone you trust.</p>
     </section>
-  </main>
+  </section>
+  <footer>ZYVORA CAM · Browser-based WebRTC · No Termux required</footer>
+</main>
 <script>
-const base=location.href.replace(/index\.html.*$/,'');
-function token(){const a=new Uint8Array(16);crypto.getRandomValues(a);return [...a].map(x=>x.toString(16).padStart(2,'0')).join('')}
-document.getElementById('create').onclick=()=>{const room=token();const c=base+'camera.html?room='+room;const v=base+'viewer.html?room='+room;cameraLink.value=c;viewerLink.value=v;links.classList.remove('hidden')};
-document.querySelectorAll('[data-copy]').forEach(b=>b.onclick=async()=>{await navigator.clipboard.writeText(document.getElementById(b.dataset.copy).value);b.textContent='Copied';setTimeout(()=>b.textContent='Copy',900)});
+(() => {
+  const SIGNALING = 'wss://zyvora-camera-signaling.onrender.com';
+  const $ = id => document.getElementById(id);
+  const base = new URL('.', location.href);
+  $('create').addEventListener('click', () => {
+    $('error').classList.add('hidden');
+    if (!/^https?:$/.test(location.protocol)) {
+      $('error').textContent = 'Open this page using the HTTPS GitHub Pages address to create a camera room.';
+      $('error').classList.remove('hidden'); return;
+    }
+    let site = $('siteUrl').value.trim();
+    if (site) {
+      try { const u = new URL(site); if (!['http:','https:'].includes(u.protocol)) throw new Error(); site = u.href; }
+      catch { $('error').textContent = 'Enter a valid website URL beginning with https:// or http://'; $('error').classList.remove('hidden'); return; }
+    }
+    const bytes = new Uint8Array(16); crypto.getRandomValues(bytes);
+    const room = [...bytes].map(x => x.toString(16).padStart(2,'0')).join('').toUpperCase();
+    const camera = new URL('camera.html', base);
+    camera.searchParams.set('room', room);
+    camera.searchParams.set('signal', SIGNALING);
+    if (site) camera.searchParams.set('site', site);
+    const viewer = new URL('viewer.html', base);
+    viewer.searchParams.set('room', room);
+    viewer.searchParams.set('signal', SIGNALING);
+    $('roomId').textContent = 'ZYV-' + room;
+    $('cameraLink').value = camera.href;
+    $('viewerLink').value = viewer.href;
+    $('openCamera').href = camera.href;
+    $('openViewer').href = viewer.href;
+    $('result').classList.remove('hidden');
+  });
+  document.querySelectorAll('[data-copy]').forEach(btn => btn.addEventListener('click', async () => {
+    const input = $(btn.dataset.copy);
+    try {
+      await navigator.clipboard.writeText(input.value);
+      btn.textContent = 'Copied ✓';
+    } catch {
+      input.focus(); input.select();
+      try { document.execCommand('copy'); btn.textContent = 'Copied ✓'; }
+      catch { btn.textContent = 'Select and copy'; }
+    }
+    setTimeout(() => btn.textContent = 'Copy link', 1400);
+  }));
+})();
 </script>
-</body></html>
+</body>
+</html>
