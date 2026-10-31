@@ -1,54 +1,90 @@
 #!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
 
+PREFIX="${PREFIX:-/data/data/com.termux/files/usr}"
+LIB_DIR="$PREFIX/lib/zyvora-camera"
+if [[ ! -f "$LIB_DIR/local-host.js" ]]; then
+  REPO_DIR="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd || true)"
+  if [[ -f "$REPO_DIR/termux/local-host.js" ]]; then LIB_DIR="$REPO_DIR/termux"; fi
+fi
+if [[ ! -f "$LIB_DIR/local-host.js" ]]; then
+  echo "ZYVORA Camera files missing. Re-run termux/install.sh from the repository." >&2
+  exit 1
+fi
+command -v node >/dev/null 2>&1 || { echo "Install Node.js first: pkg install nodejs -y"; exit 1; }
+
 clear 2>/dev/null || true
 printf '\033[1;36m'
 cat <<'BANNER'
-╔══════════════════════════════════════╗
-║          ZYVORA CAMERA               ║
-║       TWO-PHONE LINK GENERATOR       ║
-╚══════════════════════════════════════╝
+╔════════════════════════════════════════════╗
+║              ZYVORA CAMERA                 ║
+║          TWO-PHONE SESSION HOST            ║
+╚════════════════════════════════════════════╝
 BANNER
 printf '\033[0m\n'
-printf 'Paste your hosted ZYVORA web app base URL.\n'
-printf 'Example: https://your-site.example  (must contain camera.html and viewer.html)\n'
-read -r -p 'Web URL: ' BASE_URL
-BASE_URL="${BASE_URL%/}"
 
-if [[ -z "$BASE_URL" ]]; then
-  echo "Error: URL is required." >&2
-  exit 1
-fi
-if [[ ! "$BASE_URL" =~ ^https:// ]]; then
-  echo "Error: use an HTTPS URL. Camera permission is blocked on most non-secure remote pages." >&2
-  exit 1
-fi
-if [[ "$BASE_URL" =~ [[:space:]] ]]; then
-  echo "Error: URL must not contain spaces." >&2
-  exit 1
-fi
+read -r -p "Original website URL (example https://web.whatsapp.com): " SITE_URL
+SITE_URL="${SITE_URL%/}"
+node -e 'const u=new URL(process.argv[1]);if(!["http:","https:"].includes(u.protocol))process.exit(1)' "$SITE_URL" 2>/dev/null || { echo "Enter a valid http:// or https:// website URL."; exit 1; }
 
-# Create a high-entropy, URL-safe room identifier.
+DEFAULT_APP="https://teamzyvorax.github.io/as-web"
+read -r -p "ZYVORA HTTPS app URL [$DEFAULT_APP]: " APP_URL
+APP_URL="${APP_URL:-$DEFAULT_APP}"
+APP_URL="${APP_URL%/}"
+[[ "$APP_URL" == https://* ]] || { echo "Camera page must use HTTPS."; exit 1; }
+
+read -r -p "Render signaling WSS URL (wss://your-service.onrender.com): " SIGNAL_URL
+[[ "$SIGNAL_URL" == wss://* ]] || { echo "A deployed wss:// signaling URL is required. Deploy render.yaml first."; exit 1; }
+
 if command -v openssl >/dev/null 2>&1; then
-  ROOM="$(openssl rand -hex 6 | tr '[:lower:]' '[:upper:]')"
+  ROOM="$(openssl rand -hex 5 | tr '[:lower:]' '[:upper:]')"
 else
-  ROOM="$(od -An -N6 -tx1 /dev/urandom | tr -d ' \n' | tr '[:lower:]' '[:upper:]')"
+  ROOM="$(od -An -N5 -tx1 /dev/urandom | tr -d ' \n' | tr '[:lower:]' '[:upper:]')"
 fi
 ROOM="ZYV-$ROOM"
+PORT="${ZYVORA_PORT:-8080}"
 
-CAMERA_URL="$BASE_URL/camera.html?room=$ROOM"
-VIEWER_URL="$BASE_URL/viewer.html?room=$ROOM"
+# Add a room marker to the original website URL without pretending that the
+# third-party site hosts ZYVORA camera code.
+SITE_ROOM_URL="$(node -e 'const u=new URL(process.argv[1]);u.searchParams.set("ZYVORA_ROOM",process.argv[2]);process.stdout.write(u.toString())' "$SITE_URL" "$ROOM")"
+CAMERA_URL="$APP_URL/camera.html?room=$ROOM&signal=$(node -p 'encodeURIComponent(process.argv[1])' "$SIGNAL_URL")&site=$(node -p 'encodeURIComponent(process.argv[1])' "$SITE_URL")"
+VIEWER_URL="$APP_URL/viewer.html?room=$ROOM&signal=$(node -p 'encodeURIComponent(process.argv[1])' "$SIGNAL_URL")"
+
+mkdir -p "$HOME/.zyvora-camera"
+if [[ -f "$HOME/.zyvora-camera/host.pid" ]] && kill -0 "$(cat "$HOME/.zyvora-camera/host.pid")" 2>/dev/null; then
+  HOST_PID="$(cat "$HOME/.zyvora-camera/host.pid")"
+else
+  ZYVORA_APP_URL="$APP_URL" ZYVORA_SIGNAL_URL="$SIGNAL_URL" ZYVORA_PORT="$PORT" \
+    node "$LIB_DIR/local-host.js" >"$HOME/.zyvora-camera/host.log" 2>&1 &
+  HOST_PID=$!
+  echo "$HOST_PID" > "$HOME/.zyvora-camera/host.pid"
+  sleep 1
+fi
+
+IP="$(ip route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++)if($i=="src"){print $(i+1);exit}}')"
+if [[ -z "$IP" ]]; then IP="$(hostname -I 2>/dev/null | awk '{print $1}')"; fi
+[[ -n "$IP" ]] || IP="PHONE-A-IP"
+LOCAL_URL="http://$IP:$PORT/?room=$ROOM&viewer=$(node -p 'encodeURIComponent(process.argv[1])' "$VIEWER_URL")"
 
 printf '\n\033[1;32mSESSION CREATED\033[0m\n'
 printf 'ROOM ID: %s\n\n' "$ROOM"
-printf '\033[1;33mPHONE B — CAMERA\033[0m\n%s\n\n' "$CAMERA_URL"
-printf '\033[1;33mPHONE A — VIEWER\033[0m\n%s\n\n' "$VIEWER_URL"
+printf '\033[1;33mPHONE B — ORIGINAL WEBSITE\033[0m\n%s\n\n' "$SITE_ROOM_URL"
+printf '\033[1;33mPHONE B — CAMERA PERMISSION\033[0m\n%s\n\n' "$CAMERA_URL"
+printf '\033[1;33mPHONE A — LOCAL TERMUX HOST\033[0m\n%s\n\n' "$LOCAL_URL"
+printf '\033[1;33mPHONE A — SECURE LIVE VIEWER\033[0m\n%s\n\n' "$VIEWER_URL"
 
 if command -v termux-clipboard-set >/dev/null 2>&1; then
-  printf '%s\n%s\n' "$CAMERA_URL" "$VIEWER_URL" | termux-clipboard-set 2>/dev/null || true
-  echo "Both links copied to clipboard (if clipboard permission is available)."
+  printf '%s\n%s\n%s\n%s\n' "$SITE_ROOM_URL" "$CAMERA_URL" "$LOCAL_URL" "$VIEWER_URL" | termux-clipboard-set 2>/dev/null || true
+  echo "All links copied to clipboard."
 fi
 
-echo "Phone B must open the camera link, tap Start Camera, and grant permission."
-echo "Keep the camera page open. Phone A can request switch or stop."
-echo "Share these links only with the intended devices."
+cat <<'NOTICE'
+IMPORTANT:
+• Phone A and Phone B should be on the same Wi-Fi to open the local host link.
+• Open the secure live viewer link on Phone A for WebRTC video.
+• The local Termux page is a session launcher; browser camera/WebRTC security
+  requires the actual camera and viewer pages to use HTTPS.
+• The original third-party website only receives a ZYVORA_ROOM query parameter.
+  It does not become a ZYVORA camera page.
+• On Phone B, tap Start Camera and explicitly allow camera permission.
+NOTICE
