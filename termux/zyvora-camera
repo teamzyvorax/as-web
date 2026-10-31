@@ -1,0 +1,54 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+
+clear 2>/dev/null || true
+printf '\033[1;36m'
+cat <<'BANNER'
+╔══════════════════════════════════════╗
+║          ZYVORA CAMERA               ║
+║       TWO-PHONE LINK GENERATOR       ║
+╚══════════════════════════════════════╝
+BANNER
+printf '\033[0m\n'
+printf 'Paste your hosted ZYVORA web app base URL.\n'
+printf 'Example: https://your-site.example  (must contain camera.html and viewer.html)\n'
+read -r -p 'Web URL: ' BASE_URL
+BASE_URL="${BASE_URL%/}"
+
+if [[ -z "$BASE_URL" ]]; then
+  echo "Error: URL is required." >&2
+  exit 1
+fi
+if [[ ! "$BASE_URL" =~ ^https:// ]]; then
+  echo "Error: use an HTTPS URL. Camera permission is blocked on most non-secure remote pages." >&2
+  exit 1
+fi
+if [[ "$BASE_URL" =~ [[:space:]] ]]; then
+  echo "Error: URL must not contain spaces." >&2
+  exit 1
+fi
+
+# Create a high-entropy, URL-safe room identifier.
+if command -v openssl >/dev/null 2>&1; then
+  ROOM="$(openssl rand -hex 6 | tr '[:lower:]' '[:upper:]')"
+else
+  ROOM="$(od -An -N6 -tx1 /dev/urandom | tr -d ' \n' | tr '[:lower:]' '[:upper:]')"
+fi
+ROOM="ZYV-$ROOM"
+
+CAMERA_URL="$BASE_URL/camera.html?room=$ROOM"
+VIEWER_URL="$BASE_URL/viewer.html?room=$ROOM"
+
+printf '\n\033[1;32mSESSION CREATED\033[0m\n'
+printf 'ROOM ID: %s\n\n' "$ROOM"
+printf '\033[1;33mPHONE B — CAMERA\033[0m\n%s\n\n' "$CAMERA_URL"
+printf '\033[1;33mPHONE A — VIEWER\033[0m\n%s\n\n' "$VIEWER_URL"
+
+if command -v termux-clipboard-set >/dev/null 2>&1; then
+  printf '%s\n%s\n' "$CAMERA_URL" "$VIEWER_URL" | termux-clipboard-set 2>/dev/null || true
+  echo "Both links copied to clipboard (if clipboard permission is available)."
+fi
+
+echo "Phone B must open the camera link, tap Start Camera, and grant permission."
+echo "Keep the camera page open. Phone A can request switch or stop."
+echo "Share these links only with the intended devices."
