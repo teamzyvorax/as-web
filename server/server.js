@@ -1,1 +1,42 @@
-const express=require('express');const http=require('http');const {WebSocketServer}=require('ws');const app=express();app.get('/health',(req,res)=>res.json({ok:true,service:'zyvora-camera-signaling'}));const server=http.createServer(app);const wss=new WebSocketServer({server});const rooms=new Map();function send(ws,msg){if(ws.readyState===1)ws.send(JSON.stringify(msg))}wss.on('connection',ws=>{ws.on('message',raw=>{let m;try{m=JSON.parse(raw)}catch{return}if(m.type==='join'){if(!m.room||!['camera','viewer'].includes(m.role))return;let r=rooms.get(m.room);if(!r){r={camera:null,viewer:null};rooms.set(m.room,r)}if(r[m.role]&&r[m.role]!==ws){send(ws,{type:'error',message:'Role already connected'});return}r[m.role]=ws;ws.room=m.room;ws.role=m.role;const other=m.role==='camera'?r.viewer:r.camera;if(other)send(other,{type:m.role+'-joined'});return}const r=rooms.get(ws.room);if(!r)return;const other=ws.role==='camera'?r.viewer:r.camera;if(!other)return;if(m.type==='control'&&ws.role==='viewer'){send(r.camera,m);return}if(['offer','answer','ice'].includes(m.type))send(other,m)});ws.on('close',()=>{const r=rooms.get(ws.room);if(!r)return;if(r[ws.role]===ws)r[ws.role]=null;const other=ws.role==='camera'?r.viewer:r.camera;if(other)send(other,{type:ws.role==='camera'?'camera-stopped':'viewer-left'});if(!r.camera&&!r.viewer)rooms.delete(ws.room)})});const port=process.env.PORT||10000;server.listen(port,'0.0.0.0',()=>console.log('ZYVORA signaling on '+port));
+const express=require('express');
+const http=require('http');
+const {WebSocketServer}=require('ws');
+const app=express();
+app.get('/health',(req,res)=>res.json({ok:true,service:'zyvora-camera-signaling'}));
+const server=http.createServer(app);
+const wss=new WebSocketServer({server});
+const rooms=new Map();
+function send(ws,msg){if(ws&&ws.readyState===1)ws.send(JSON.stringify(msg))}
+wss.on('connection',ws=>{
+ ws.on('message',raw=>{
+  let m;
+  try{m=JSON.parse(raw)}catch{return}
+  if(m.type==='join'){
+   if(!m.room||!['camera','viewer'].includes(m.role))return;
+   let r=rooms.get(m.room);
+   if(!r){r={camera:null,viewer:null};rooms.set(m.room,r)}
+   if(r[m.role]&&r[m.role]!==ws){send(ws,{type:'error',message:'Role already connected'});return}
+   r[m.role]=ws;ws.room=m.room;ws.role=m.role;
+   const other=m.role==='camera'?r.viewer:r.camera;
+   // Always notify the camera peer when a viewer is present, regardless of join order.
+   if(other)send(m.role==='camera'?ws:other,{type:'viewer-joined'});
+   return;
+  }
+  const r=rooms.get(ws.room);
+  if(!r)return;
+  const other=ws.role==='camera'?r.viewer:r.camera;
+  if(!other)return;
+  if(m.type==='control'&&ws.role==='viewer'){send(r.camera,m);return}
+  if(['offer','answer','ice','camera-stopped'].includes(m.type))send(other,m);
+ });
+ ws.on('close',()=>{
+  const r=rooms.get(ws.room);
+  if(!r)return;
+  if(r[ws.role]===ws)r[ws.role]=null;
+  const other=ws.role==='camera'?r.viewer:r.camera;
+  if(other)send(other,{type:ws.role==='camera'?'camera-stopped':'viewer-left'});
+  if(!r.camera&&!r.viewer)rooms.delete(ws.room);
+ });
+});
+const port=process.env.PORT||10000;
+server.listen(port,'0.0.0.0',()=>console.log('ZYVORA signaling on '+port));
