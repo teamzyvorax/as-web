@@ -1,8 +1,6 @@
 const http = require('node:http');
 const { URL } = require('node:url');
 
-const APP_URL = (process.env.ZYVORA_APP_URL || 'https://teamzyvorax.github.io/as-web').replace(/\/$/, '');
-const SIGNAL_URL = process.env.ZYVORA_SIGNAL_URL || '';
 const PORT = Number(process.env.ZYVORA_PORT || 8080);
 
 function escapeHtml(value) {
@@ -19,13 +17,16 @@ const server = http.createServer((req, res) => {
   const room = url.searchParams.get('room') || '';
   let viewer = '';
   try {
-    const candidate = url.searchParams.get('viewer') || '';
-    const parsed = new URL(candidate);
+    const parsed = new URL(url.searchParams.get('viewer') || '');
     if (parsed.protocol === 'https:') viewer = parsed.href;
   } catch {}
 
   const safeRoom = escapeHtml(room || 'No session selected');
   const safeViewer = escapeHtml(viewer);
+  const viewerBlock = viewer
+    ? '<a id="viewerLink" href="' + safeViewer + '" rel="noopener">Open Secure Live Viewer</a><button id="copy">Copy viewer link</button><script>document.getElementById("copy").onclick=()=>navigator.clipboard.writeText(document.getElementById("viewerLink").href).then(()=>document.getElementById("copy").textContent="Copied");</script>'
+    : '<p>Missing or invalid secure viewer link. Run zyvora-camera again to create a session.</p>';
+
   const page = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ZYVORA Local Session Host</title>
@@ -37,8 +38,8 @@ a,button{display:inline-block;margin-top:16px;padding:14px 18px;border:0;border-
 small{display:block;margin-top:16px;color:#8995a8}
 </style></head><body><main><div class="brand">ZYVORA CAM / LOCAL HOST</div><h1>Session ready</h1><p>Phone A local Termux host is running. Open the secure viewer to watch the camera stream.</p>
 <div class="room">${safeRoom}</div>
-${viewer ? `<a href="${safeViewer}" rel="noopener">Open Secure Live Viewer</a><button id="copy">Copy viewer link</button><script>document.getElementById('copy').onclick=()=>navigator.clipboard.writeText(${JSON.stringify(viewer)}).then(()=>document.getElementById('copy').textContent='Copied');</script>` : '<p>Missing or invalid secure viewer link. Run zyvora-camera again to create a session.</p>'}
-<small>Keep both phones on the same Wi-Fi to reach this local host. The actual camera and WebRTC viewer pages use HTTPS for browser security.</small>
+${viewerBlock}
+<small>The local Termux host is reachable over your Wi-Fi. The actual camera and WebRTC viewer pages use HTTPS for browser security.</small>
 </main></body></html>`;
 
   res.writeHead(200, {'content-type':'text/html; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});
