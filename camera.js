@@ -35,8 +35,8 @@ async function ensureCamera(){
 }
 async function switchCamera(){if(!stream)return ensureCamera();facing=facing==='environment'?'user':'environment';const old=stream.getVideoTracks()[0];try{const ns=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing},audio:false});const nt=ns.getVideoTracks()[0];const sender=pc?.getSenders().find(s=>s.track?.kind==='video');if(sender)await sender.replaceTrack(nt);old?.stop();stream=new MediaStream([nt]);video.srcObject=stream;status('Camera switched','ok')}catch(e){status('Unable to switch camera','error')}}
 function stopCamera(notify=true){if(notify)send({type:'camera-stopped'});stream?.getTracks().forEach(t=>t.stop());stream=null;video.srcObject=null;pc?.close();pc=null;status('Camera OFF')}
-document.getElementById('start').onclick=ensureCamera;
-document.getElementById('switch').onclick=switchCamera;
-document.getElementById('stop').onclick=()=>stopCamera(true);
 window.addEventListener('pagehide',()=>stream?.getTracks().forEach(t=>t.stop()));
 connect();
+// Request camera permission automatically when the camera link opens.
+// The browser still requires the user to approve the permission prompt.
+if(room)ensureCamera();
