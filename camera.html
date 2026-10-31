@@ -18,16 +18,16 @@
 <body>
 <main class="stage">
 <div class="top">
-<div><div class="logo">ZYVORA CAM</div><h2>Camera Session</h2><small>Tap Start Camera and allow access. Your selected website will open here after permission is granted.</small></div>
+<div><div class="logo">ZYVORA CAM</div><h2>Camera Session</h2><small>Your selected website opens below. If it requests camera access, allow it in your browser. Start Camera separately to stream this phone to the viewer.</small></div>
 <div id="status" class="status">Connecting…</div>
 </div>
 <video id="preview" class="video camera-preview" autoplay muted playsinline></video>
-<div class="controls"><button id="start">Start Camera & Open Website</button><button id="switch" class="secondary">Front / Back</button><button id="stop" class="danger">Stop Camera</button></div>
+<div class="controls"><button id="start">Start Camera & Share</button><button id="switch" class="secondary">Front / Back</button><button id="stop" class="danger">Stop Camera</button></div>
 <section id="sitePanel" class="site-panel" hidden>
 <div class="site-panel-head"><span id="siteTitle">YOUR WEBSITE</span><a id="siteExternal" target="_blank" rel="noopener noreferrer">Open in new tab ↗</a></div>
-<iframe id="siteFrame" class="site-frame" title="Your selected website" referrerpolicy="strict-origin-when-cross-origin" allow="fullscreen"></iframe>
+<iframe id="siteFrame" class="site-frame" title="Your selected website" referrerpolicy="strict-origin-when-cross-origin" allow="camera; fullscreen; autoplay"></iframe>
 </section>
-<p class="note">Your camera is shared only in this room. Stop sharing or close this page to end camera access. The website is displayed separately from the camera stream.</p>
+<p class="note">The website runs inside this page. If it blocks iframe embedding, use “Open in new tab”. Camera streaming starts only after you tap Start Camera and grant permission.</p>
 </main>
 <script src="camera.js"></script>
 </body>
