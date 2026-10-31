@@ -5,7 +5,9 @@ const statusEl=document.getElementById('status'),video=document.getElementById('
 const siteLink=document.getElementById('siteLink');
 if(siteLink){const site=params.get('site');if(site){try{const u=new URL(site);if(['http:','https:'].includes(u.protocol)){siteLink.href=u.href;siteLink.hidden=false}}catch{}}}
 let ws,pc,stream,facing='environment',viewerReady=false;
-const pendingIce=[];\nasync function addRemoteIce(candidate){if(!pc)return;if(!pc.remoteDescription){pendingIce.push(candidate);return}try{await pc.addIceCandidate(candidate)}catch{}}\nasync function flushRemoteIce(){while(pendingIce.length&&pc?.remoteDescription){const candidate=pendingIce.shift();try{await pc.addIceCandidate(candidate)}catch{}}}
+const pendingIce=[];
+async function addRemoteIce(candidate){if(!pc)return;if(!pc.remoteDescription){pendingIce.push(candidate);return}try{await pc.addIceCandidate(candidate)}catch{}}
+async function flushRemoteIce(){while(pendingIce.length&&pc?.remoteDescription){const candidate=pendingIce.shift();try{await pc.addIceCandidate(candidate)}catch{}}}
 const ice={iceServers:[{urls:'stun:stun.l.google.com:19302'}]};
 function status(t,c=''){statusEl.textContent=t;statusEl.className='status '+c}
 function send(x){if(ws?.readyState===1)ws.send(JSON.stringify(x))}
