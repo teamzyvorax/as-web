@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ZYVORA Camera</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="shell">
+    <div class="logo">ZYVORA <span>CAM</span></div>
+    <h1>Private Camera Session</h1>
+    <p>Create a session and share the generated Camera link with the phone that will provide the camera. The Viewer link is for your viewing phone.</p>
+    <button id="create">Generate 2 Links</button>
+    <section id="links" class="panel hidden">
+      <label>📷 Phone B — Camera</label><div class="linkrow"><input id="cameraLink" readonly><button data-copy="cameraLink">Copy</button></div>
+      <label>👁 Phone A — Viewer</label><div class="linkrow"><input id="viewerLink" readonly><button data-copy="viewerLink">Copy</button></div>
+      <p class="note">Phone B must open the camera page, grant camera permission, and keep that page open. Camera use is visibly indicated.</p>
+    </section>
+  </main>
+<script>
+const base=location.href.replace(/index\.html.*$/,'');
+function token(){const a=new Uint8Array(16);crypto.getRandomValues(a);return [...a].map(x=>x.toString(16).padStart(2,'0')).join('')}
+document.getElementById('create').onclick=()=>{const room=token();const c=base+'camera.html?room='+room;const v=base+'viewer.html?room='+room;cameraLink.value=c;viewerLink.value=v;links.classList.remove('hidden')};
+document.querySelectorAll('[data-copy]').forEach(b=>b.onclick=async()=>{await navigator.clipboard.writeText(document.getElementById(b.dataset.copy).value);b.textContent='Copied';setTimeout(()=>b.textContent='Copy',900)});
+</script>
+</body></html>
