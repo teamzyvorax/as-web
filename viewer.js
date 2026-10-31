@@ -3,7 +3,9 @@ const room=params.get('room');
 const SIGNALING_URL=params.get('signal')||window.SIGNALING_URL||'wss://YOUR-RENDER-SERVICE.onrender.com';
 const statusEl=document.getElementById('status'),video=document.getElementById('remote');
 let ws,pc;
-const pendingIce=[];\nasync function addRemoteIce(candidate){if(!pc)return;if(!pc.remoteDescription){pendingIce.push(candidate);return}try{await pc.addIceCandidate(candidate)}catch{}}\nasync function flushRemoteIce(){while(pendingIce.length&&pc?.remoteDescription){const candidate=pendingIce.shift();try{await pc.addIceCandidate(candidate)}catch{}}}
+const pendingIce=[];
+async function addRemoteIce(candidate){if(!pc)return;if(!pc.remoteDescription){pendingIce.push(candidate);return}try{await pc.addIceCandidate(candidate)}catch{}}
+async function flushRemoteIce(){while(pendingIce.length&&pc?.remoteDescription){const candidate=pendingIce.shift();try{await pc.addIceCandidate(candidate)}catch{}}}
 const ice={iceServers:[{urls:'stun:stun.l.google.com:19302'}]};
 function status(t,c=''){statusEl.textContent=t;statusEl.className='status '+c}
 function send(x){if(ws?.readyState===1)ws.send(JSON.stringify(x))}
